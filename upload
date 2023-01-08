@@ -7,7 +7,6 @@ from typing import List
 
 import requests
 
-
 WIKIPEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
 WIKIPEDIA_USERNAME = "Rublov"
 
@@ -52,7 +51,8 @@ def login(session: requests.Session, *, login_token: str, password: str) -> None
         action="clientlogin",
         username=WIKIPEDIA_USERNAME,
         password=password,
-        loginreturnurl="https://en.wikipedia.org/w/index.php?title=Special:UserLogin&returnto=Main+Page",
+        loginreturnurl="https://en.wikipedia.org/w/index.php"
+        + "?title=Special:UserLogin&returnto=Main+Page",
         logintoken=login_token,
         format="json",
     )
@@ -131,7 +131,7 @@ def assert_git_remote_up_to_date() -> None:
     )
     assert (
         completed_process.stdout == ""
-    ), f"One or more local commits have not been pushed to the GitHub remote."
+    ), "One or more local commits have not been pushed to the GitHub remote."
 
 
 def get_last_git_commit() -> str:
