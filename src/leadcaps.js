@@ -3,6 +3,8 @@
  * capitalization of the actual page title.
  *
  * Written by [[User:Rublov]], January 2022
+ *
+ * This script is developed on GitHub: https://github.com/rublovwiki/scripts
  */
 
 $(function () {

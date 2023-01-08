@@ -2,6 +2,8 @@
  * Highlights violations of [[MOS:REFSPACE]] in red.
  *
  * Written by [[User:Rublov]], June 2021
+ *
+ * This script is developed on GitHub: https://github.com/rublovwiki/scripts
  */
 
 $(function () {

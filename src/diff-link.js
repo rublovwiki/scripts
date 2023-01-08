@@ -6,6 +6,8 @@
  * [[User:Enterprisey/diff-permalink.js]]
  *
  * Written by [[User:Rublov]], June 2021
+ *
+ * This script is developed on GitHub: https://github.com/rublovwiki/scripts
  */
 const INPUT_ID = "user-rublov-diff-link";
 
