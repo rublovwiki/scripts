@@ -14,12 +14,12 @@ $(function () {
   if (location.search.includes("action=history")) {
     initializePage(
       /* copyBoxLocation= */ ".mw-history-compareselectedversions",
-      /* copyLinkLocation= */ "span.mw-history-histlinks"
+      /* copyLinkLocation= */ "span.mw-history-histlinks",
     );
   } else if (location.href.includes("Special:Contributions")) {
     initializePage(
       /* copyBoxLocation= */ ".mw-pager-navigation-bar",
-      /* copyLinkLocation= */ "span.mw-changeslist-links"
+      /* copyLinkLocation= */ "span.mw-changeslist-links",
     );
   }
 });

@@ -1,0 +1,14 @@
+{
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "env": {
+    "browser": true
+  },
+  "extends": ["eslint:recommended"],
+  "globals": {
+    "$": "readonly",
+    "mw": "readonly"
+  }
+}

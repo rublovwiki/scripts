@@ -6,7 +6,9 @@
 
 $(function () {
   if (mw.config.get("wgAction") === "view") {
-    for (const ref of document.querySelectorAll(".reference, .Template-Fact, .Inline-Template")) {
+    for (const ref of document.querySelectorAll(
+      ".reference, .Template-Fact, .Inline-Template",
+    )) {
       const previous = ref.previousSibling;
       const next = ref.nextSibling;
       if (
