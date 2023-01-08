@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+import argparse
+import getpass
+import os
+import subprocess
+from typing import List
+
+import requests
+
+
+WIKIPEDIA_API_URL = "https://en.wikipedia.org/w/api.php"
+WIKIPEDIA_USERNAME = "Rublov"
+
+
+def main(script_paths: List[str]) -> None:
+    # The Wikipedia edit summary includes the git commit hash, so we need to make sure
+    # we've pushed all commits to the remote so that the edit summary makes sense.
+    assert_git_remote_up_to_date()
+    for script_path in script_paths:
+        assert_no_uncommitted_changes(script_path)
+
+    session = requests.Session()
+    wikipedia_password = prompt_for_wikipedia_password()
+
+    print()
+    print("Fetching login token")
+    login_token = get_login_token(session)
+    print("Logging in")
+    login(session, login_token=login_token, password=wikipedia_password)
+    print("Fetching CSRF token")
+    csrf_token = get_csrf_token(session)
+
+    try:
+        for script_path in script_paths:
+            print(f"Uploading {script_path}")
+            upload_script(session, script_path=script_path, csrf_token=csrf_token)
+    finally:
+        print("Logging out")
+        logout(session, csrf_token=csrf_token)
+
+
+def get_login_token(session: requests.Session) -> str:
+    api_params = dict(action="query", meta="tokens", type="login", format="json")
+    response = session.get(url=WIKIPEDIA_API_URL, params=api_params)
+    response.raise_for_status()
+    data = response.json()
+    return data["query"]["tokens"]["logintoken"]
+
+
+def login(session: requests.Session, *, login_token: str, password: str) -> None:
+    api_params = dict(
+        action="clientlogin",
+        username=WIKIPEDIA_USERNAME,
+        password=password,
+        loginreturnurl="https://en.wikipedia.org/w/index.php?title=Special:UserLogin&returnto=Main+Page",
+        logintoken=login_token,
+        format="json",
+    )
+    response = session.post(url=WIKIPEDIA_API_URL, data=api_params)
+    response.raise_for_status()
+    data = response.json()
+    assert (
+        data["clientlogin"]["status"] == "PASS"
+    ), "Failed to log in to the Wikipedia API"
+
+
+def logout(session: requests.Session, *, csrf_token: str) -> None:
+    api_params = dict(action="logout", token=csrf_token, format="json")
+    response = session.post(url=WIKIPEDIA_API_URL, data=api_params)
+    response.raise_for_status()
+
+
+def get_csrf_token(session: requests.Session) -> str:
+    api_params = dict(action="query", meta="tokens", format="json")
+    response = session.get(url=WIKIPEDIA_API_URL, params=api_params)
+    response.raise_for_status()
+    data = response.json()
+    return data["query"]["tokens"]["csrftoken"]
+
+
+def upload_script(
+    session: requests.Session, *, script_path: str, csrf_token: str
+) -> None:
+    title = path_to_wikipedia_title(script_path)
+    with open(script_path, "r", encoding="utf8") as f:
+        text = f.read()
+
+    summary = get_edit_summary(script_path)
+    api_params = dict(
+        action="edit",
+        title=title,
+        text=text,
+        summary=summary,
+        token=csrf_token,
+        format="json",
+    )
+    response = session.post(WIKIPEDIA_API_URL, data=api_params)
+    response.raise_for_status()
+
+
+def prompt_for_wikipedia_password() -> str:
+    return getpass.getpass(prompt=f"Password for user {WIKIPEDIA_USERNAME}: ")
+
+
+def path_to_wikipedia_title(path: str) -> str:
+    basename = os.path.basename(path)
+    return f"User:{WIKIPEDIA_USERNAME}/{basename}"
+
+
+def get_edit_summary(script_path: str) -> str:
+    github_url = get_github_url(script_path)
+
+    git_commit = get_last_git_commit()
+    return f"Upload script from {github_url} at commit {git_commit}"
+
+
+def get_github_url(script_path: str) -> str:
+    return f"https://github.com/rublovwiki/scripts/blob/master/{script_path}"
+
+
+def assert_no_uncommitted_changes(script_path: str) -> None:
+    completed_process = subprocess.run(
+        ["git", "diff", "HEAD", "--exit-code", "--quiet", "--", script_path]
+    )
+    assert completed_process.returncode == 0, f"{script_path} has uncommitted changes."
+
+
+def assert_git_remote_up_to_date() -> None:
+    completed_process = subprocess.run(
+        ["git", "cherry"], capture_output=True, encoding="utf8"
+    )
+    assert (
+        completed_process.stdout == ""
+    ), f"One or more local commits have not been pushed to the GitHub remote."
+
+
+def get_last_git_commit() -> str:
+    completed_process = subprocess.run(
+        ["git", "show", "HEAD", "--pretty=%h", "--no-patch"],
+        capture_output=True,
+        encoding="utf8",
+    )
+    completed_process.check_returncode()
+    return completed_process.stdout.strip()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Upload a script's source code to Wikipedia."
+    )
+    parser.add_argument(
+        "scripts",
+        nargs="*",
+        help="Path to the scripts to upload."
+        + " Each script's file name will be used as its page title on Wikipedia.",
+    )
+    args = parser.parse_args()
+
+    main(args.scripts)
